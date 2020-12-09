@@ -13,8 +13,14 @@ async function main() {
     try {
         await loadCache();
 
+        const termCols = process.stdout.columns;
+        const horizPad = 10;
+
         const nextUp: PreparedCard = await getNextPlay();
-        const image = await terminalImage.buffer(nextUp.cover.imageBuffer, { width: 50 });
+        const imageWidth = 50;
+        const image = await terminalImage.buffer(nextUp.cover.imageBuffer, { width: imageWidth });
+        const maxTrackLen = termCols - imageWidth - horizPad;
+        console.log(`${maxTrackLen} columns for info`);
         
         const artist = chalk.bold(chalk.cyanBright(nextUp.artist));
         const album = chalk.italic(chalk.greenBright(nextUp.album))
@@ -25,7 +31,8 @@ async function main() {
         if (nextUp.urls.length > 0) {
             nextUp.BCAlbum = await loadAlbum(nextUp.urls[0]);
             nextUp.BCAlbum.tracks.forEach((t, i) => {
-                const trackName = t.available ? terminalHyperlink(t.url, chalk.whiteBright(t.name)) : t.name;
+                const tn = t.name.length > maxTrackLen ? `${t.name.substr(0, maxTrackLen - 2).trim()}…` : t.name;
+                const trackName = t.available ? terminalHyperlink(t.url, chalk.whiteBright(tn)) : tn;
                 tracks.push(`  ${chalk.redBright(i + 1)}. ${trackName} ${chalk.italic(chalk.grey(t.lengthDisplay))}`);
             });
         }

@@ -31,10 +31,11 @@ import fetch from 'node-fetch';
 
 const Trello = new TrelloNodeAPI(TRELLO_API_KEY, TRELLO_OAUTH_TOKEN);
 
-import { format, differenceInSeconds, parse } from 'date-fns';
+import { format, differenceInSeconds, parse, compareAsc } from 'date-fns';
 import fs from './fs';
 import path from 'path';
-import { BandcampAlbum } from './bandcamp';
+import { BandcampAlbum, loadAlbum } from './bandcamp';
+import { load } from 'cheerio';
 
 const CACHE_DIR = '.cache';
 
@@ -95,6 +96,11 @@ export interface PreparedCard {
     list?: any,
 }
 
+export interface CardLabel {
+    color: string,
+    label: string,
+}
+
 export interface RankedSlacker {
     slacker: string,
     average: number,
@@ -140,7 +146,7 @@ export async function loadCache() {
     }));
 }
 
-function hasCache(key) {
+export function hasCache(key) {
     return typeof cachedTrelloResponses[key] !== 'undefined';
 }
 
@@ -169,8 +175,7 @@ export async function setCache(key, val) {
     }
 }
 
-export async function getCache(key, val) {
-    // console.log('Fetching:', key);
+export async function getCache(key) {``
     return cachedTrelloResponses[key];
 }
 
@@ -186,8 +191,6 @@ export async function APICall(objType: string, method: string, ...params: string
         // console.log('Cache Hit!', key);
         return cachedTrelloResponses[key];
     }
-
-    const now = new Date();
 
     // API Rate Limits
     // To help prevent strain on Trello’s servers, our API imposes rate limits per API key for all issued tokens.
@@ -217,9 +220,21 @@ export async function APICall(objType: string, method: string, ...params: string
     const resp = await Trello[objType][method](...params);
     apiHit.response = resp;
     
-
     setCache(key, resp)
     return resp
+}
+
+
+
+export async function getLabels(boardId: string = TRELLO_BOARD_ID, cleanLabels: boolean = true): Promise<CardLabel[]> {
+    const board = await APICall('board', 'search', boardId);
+    const labels: CardLabel[] = []
+    Object.keys(board.labelNames)
+        .forEach(color => labels.push({
+            color,
+            label: cleanLabels ? cleanName(board.labelNames[color]) : board.labelNames[color]
+        }));
+    return labels;
 }
 
 export async function getMonthListsForBoard(boardId: string = TRELLO_BOARD_ID): Promise<{[key: string]: PreparedList}> {
@@ -293,7 +308,12 @@ export async function listCardAttachments(cardId: string) {
     return await APICall('card','searchAttachments', cardId);
 }
 
-export async function prepareCard(c: any, populate: boolean = false) {
+export interface PrepareCardOptions {
+    cover?: boolean,
+    mp3s?: boolean
+}
+
+export async function prepareCard(c: any, options: PrepareCardOptions = {}) {
     let card: PreparedCard = {
         id: c.id,
         idBoard: c.idBoard,
@@ -305,6 +325,12 @@ export async function prepareCard(c: any, populate: boolean = false) {
         _meta: c,
         urls: []
     };
+
+    const o: PrepareCardOptions = {...{
+        cover: false,
+        mp3s: false,
+    }, ...options};
+
 
     card.name = card.name.replace(/\s+$/gism, '');
     if (sharedRgx.test(card.name)) {
@@ -323,6 +349,8 @@ export async function prepareCard(c: any, populate: boolean = false) {
             card.album = match.groups.album.trim();
         }
     }
+
+    // console.log('CARD NAME:', card.artist, '--', card.album);
 
     c.labels.forEach(l => {
         card[`has_${cleanName(l.name)}`] = true;
@@ -347,7 +375,7 @@ export async function prepareCard(c: any, populate: boolean = false) {
 
     // console.log(c.cover.idAttachment);
     try {
-        if (populate && c.cover && c.cover.idAttachment) {
+        if (o.cover && c.cover && c.cover.idAttachment) {
             card.cover = await getCardAttachment(card.id, c.cover.idAttachment);
         }
     } catch (err) {
@@ -443,6 +471,41 @@ export async function getNextPlay() {
         throw new Error("nothing in the queue, check back later");
     }
 
-    return prepareCard(options[0], true);
+    return prepareCard(options[0], { cover: true });
+}
+
+export async function getRelistens(): Promise<any[]> {
+    const raw = await APICall('board', 'searchCards', TRELLO_BOARD_ID);
+    const prepared = await Promise.all(raw.map(c => prepareCard(c)));
+    // console.log(await prepareCard(raw[1]));
+    // process.exit(0)
+    const filtered = prepared.filter((c: any) => c.has_relisten && 
+                                                c.artist && 
+                                                c.album &&
+                                                /bandcamp/.test(c.urls[0]));
+    const bcPrepped = await Promise.all(filtered.map(async (c: any) => { 
+        c.BCAlbum = await loadAlbum(c.urls[0], false);
+        return c;
+    }));
+    bcPrepped.sort((a: any, b: any) => compareAsc(b.BCAlbum.releaseDate, a.BCAlbum.releaseDate));
+
+    return await Promise.all(bcPrepped
+        .slice(0, 10)
+        .map(async (c) => {
+            const rePrepared = await prepareCard(c._meta, { cover: true })
+            
+            return { ...c, ...rePrepared, releaseDate: c.BCAlbum.releaseDate };
+        }));
+    // const options = await Promise.all(
+    //     results
+    //         .filter((c: any) => c.idList === queueList.id)
+    // );
+
+
+    // if (options.length < 1) {
+    //     throw new Error("nothing in the queue, check back later");
+    // }
+
+    // return prepareCard(options[0], true);
 }
 

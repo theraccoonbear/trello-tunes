@@ -4,6 +4,9 @@ import json5 from 'json5';
 import path from 'path';
 import url from 'url';
 import fs from './fs';
+import parse from 'date-fns/parse'
+import { getCache, setCache, hasCache, PrepareCardOptions } from './helpers';
+import { DESTRUCTION } from 'dns';
 
 
 export type AlbumTrack = {
@@ -26,9 +29,16 @@ export type BandcampAlbum = {
 }
 
 
-export async function scrape(BCAlbum, html) {
+export async function scrape(BCAlbum, html, options: PrepareCardOptions = {} ) {
+    const o: PrepareCardOptions = {...{
+        cover: false,
+        mp3s: false,
+    }, ...options};
+
     const albumDir = `${BCAlbum.artist}-${BCAlbum.album}`;
     const albumPath = path.join('mp3', albumDir);
+
+    // console.log(BCAlbum);
 
     if (! await fs.exists(albumPath)) {
         await fs.mkdir(albumPath);
@@ -39,17 +49,23 @@ export async function scrape(BCAlbum, html) {
         const matches = tralbumData.exec(html);
         if (matches && matches.groups) {
             const stuff = matches?.groups?.stuff
-                .replace(/"\s\+\s"/g, '')
-                // .replace(/^\s+\/\/.+$/gm, '') // remove the comments
-                // .replace(/(?<!\\)(?<!")\b(?<key>[a-z][a-z_0-9]*)(?=\s*:)/gi, '"$<key>"')
-                // .replace(/\/\/\s+.+$/gmi, '')
-                // .replace(/(?<![^"])\b(?<key>[a-z][a-z_0-9]*)\b(?=\s*:)/ig, '$<before>"$<key>"$<after>');
+                .replace(/"\s\+\s"/g, '');
+            let parsed;
             try {
-                const parsed = json5.parse(stuff);
-                if (parsed && parsed.trackinfo && Array.isArray(parsed.trackinfo)) {
-                    await Promise.all(parsed.trackinfo.map(async (track) => {
-                        const fileName = track.title.replace(/[^ A-Za-z0-9_]+/g, '-');
-                        const filePath = path.join(albumPath, `${fileName}.mp3`);
+                parsed = json5.parse(stuff);
+            } catch (err) {
+                console.error('JSON5 Parse Error:');
+                console.error(err);
+                process.exit(1);
+            }
+
+            try {
+                if (o.mp3s && parsed && parsed.trackinfo && Array.isArray(parsed.trackinfo)) {
+                    await Promise.all(parsed.trackinfo.map(async (track, idx) => {
+                        const i = idx +1;
+                        const trkNum = i < 9 ? `0${i + 1}` : `${i}`;
+                        const fileName = `${trkNum} - ${track.title.replace(/[^ A-Za-z0-9_]+/g, '-')}.mp3`;
+                        const filePath = path.join(albumPath, fileName);
                         if (track && track.file && !await fs.exists(filePath)) {
                             const mp3 = await fetch(track.file['mp3-128']);
                             await fs.writeFile(filePath, await mp3.buffer());
@@ -57,25 +73,37 @@ export async function scrape(BCAlbum, html) {
                     }));
                 }
             } catch (err) {
-                console.error('JSON5 Parse Error:');
-                console.error(err);
-                process.exit(1);
+                console.log('MP3 Download Eror')
             }
+
         }
     }
 }
 
-export async function loadAlbum(albumUrl: string): Promise<BandcampAlbum> {
-    const res = await fetch(albumUrl);
-    const html = await res.text();
+export async function loadAlbum(albumUrl: string, mp3s: boolean = true): Promise<BandcampAlbum> {
+    const cacheKey = albumUrl.replace(/[^A-Za-z0-9]+/g, '-');
 
-
+    let html;
+    if (hasCache(cacheKey)) {
+        // console.log(`cache hit for ${albumUrl}`);
+        html = getCache(cacheKey);
+    } else {
+        console.log(`grabbing ${albumUrl}`);
+        const res = await fetch(albumUrl);
+        html = await res.text();
+        // setCache(cacheKey, html);
+    }
 
     const $ = cheerio.load(html);
     const album = $('#name-section h2.trackTitle')
     const artist = $('span[itemprop="byArtist"] a');
 
     const tracks = $('table.track_list tr.track_row_view');
+
+    const releaseDateRaw = $('.tralbumData').find('meta[itemprop="datePublished"]').attr('content') || '';
+    const o = $('.tralbumData meta');
+    const releaseDate = parse(releaseDateRaw, 'yyyyMMdd', new Date());
+
 
     const urlObj = url.parse(albumUrl);
     const trackList: AlbumTrack[] = tracks.map((i, e) => {
@@ -106,13 +134,13 @@ export async function loadAlbum(albumUrl: string): Promise<BandcampAlbum> {
         url: albumUrl,
         artist: artist.text().trim(),
         album: album.text().trim(),
-        releaseDate: new Date(),
+        releaseDate,
         tracks: trackList,
         runningTimeSeconds,
         runningTimeDisplay: `${runMin}:${(runSec < 10 ? '0' : '') + runSec}`
     };
 
-    await scrape(BCAlbum, html);
+    await scrape(BCAlbum, html, { mp3s });
 
     return BCAlbum;
 }
