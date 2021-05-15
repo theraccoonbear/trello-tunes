@@ -184,7 +184,7 @@ function APIRequestsInSeconds(seconds: number): number {
     return apiReqHist.filter(h => differenceInSeconds(now, h.timestamp) <= seconds).length;
 }
 
-export async function APICall(objType: string, method: string, ...params: string[]) {
+export async function APICall(objType: string, method: string, ...params: string[]): Promise<any> {
     const key = [objType, method, params].join('.')
 
     if (hasCache(key)) {
@@ -200,7 +200,7 @@ export async function APICall(objType: string, method: string, ...params: string
 
     let inLast10 = APIRequestsInSeconds(10);
     if (inLast10 >= 100) {
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
             const intTimer = setInterval(() => {
                 inLast10 = APIRequestsInSeconds(10);
                 if (inLast10 < 100) {

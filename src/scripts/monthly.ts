@@ -24,6 +24,16 @@ async function main() {
             }
         });
 
+
+
+        const monthsRepresented = Object.keys(cardsByMonth).map(m => parseInt(m, 10))
+        const firstMonth = Math.max(1, Math.min(...monthsRepresented))
+        const lastMonth = Math.min(12, Math.max(...monthsRepresented))
+
+        for (let i = firstMonth; i < lastMonth; i++) {
+            cardsByMonth[i] = cardsByMonth[i] || []
+        }
+
         const chartData: any[] = []
 
 
@@ -35,7 +45,7 @@ async function main() {
                 const count = cards.length;
                 maxCount = Math.max(maxCount, count);
                 const total = cards.reduce((p, c) => p + c.score, 0);
-                const average = total / count;
+                const average = count != 0 ? total / count : 0;
                 console.log(`${fmtDate}, count: ${count}, total: ${total}, average: ${average}`);
                 chartData.push({
                     xAxisLabel: fmtDate,
