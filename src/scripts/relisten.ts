@@ -1,11 +1,8 @@
 
-import { getLabels, getRelistens, loadCache, PreparedCard, terminalHyperlink } from '../lib/helpers';
+import { getRelistens, loadCache } from '../lib/helpers';
 
 import terminalImage from 'terminal-image';
-import chalk from 'chalk';
-import emoji from 'node-emoji';
-import { format, isFuture, differenceInDays, differenceInWeeks, differenceInMonths } from 'date-fns';
-import { loadAlbum } from '../lib/bandcamp';
+import { BandcampAlbum } from '../lib/bandcamp';
 
 
 async function main() {
@@ -15,15 +12,22 @@ async function main() {
         // const nextUp: PreparedCard = await getNextPlay();
         // const labels = await getLabels();
         // console.log(labels);
-        const relistens = await getRelistens();
+        const relistens = await getRelistens(1);
         // console.log(relistens);
 
         await Promise.all(relistens.map(async (card) => {
-            const img = await terminalImage.buffer(card.cover.imageBuffer, { width: 25 });
-            console.log(img);
-            console.log(card.releaseDate);
-            console.log(`${card.artist} - ${card.album}`);
-            console.log(card.BCAlbum.url);
+            const album = card.BCAlbum as BandcampAlbum;
+            let coverBuffer;
+            if (album.coverUrl) {
+                coverBuffer = album.coverBuffer;
+            } else if (card.cover.imageBuffer) {
+                coverBuffer = album.coverBuffer;
+            }
+            if (coverBuffer) {
+                const albumCover = await terminalImage.buffer(album.coverBuffer, { width: 50 });
+                console.log(albumCover);
+            }
+            console.log(`\n * ${card.artist} - ${card.album} : ${card.releaseDate}\n   ${card.BCAlbum.url}`);
         }));
 
     } catch (err) {

@@ -5,9 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Relisten",
+            "program": "${workspaceFolder}/src/scripts/relisten.ts",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
             "type": "pwa-node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "Monthly",
             "skipFiles": [
                 "<node_internals>/**"
             ],

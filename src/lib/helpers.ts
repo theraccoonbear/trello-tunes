@@ -31,7 +31,7 @@ import fetch from 'node-fetch';
 
 const Trello = new TrelloNodeAPI(TRELLO_API_KEY, TRELLO_OAUTH_TOKEN);
 
-import { format, differenceInSeconds, parse, compareAsc } from 'date-fns';
+import { format, differenceInSeconds, parse, compareDesc } from 'date-fns';
 import fs from './fs';
 import path from 'path';
 import { BandcampAlbum, loadAlbum } from './bandcamp';
@@ -300,7 +300,11 @@ export async function getCardAttachment(cardId: string, attachmentId: string) {
     // const attach = await Trello.card.searchAttachmentByAttachmentId(cardId, attachmentId);
     const attach = await APICall('card','searchAttachmentByAttachmentId', cardId, attachmentId);
     const image = await fetch(attach.url);
-    attach.imageBuffer = await image.buffer();
+    if (image.status < 400) {
+        attach.imageBuffer = await image.buffer();
+    } else {
+        attach.imageBuffer = false;
+    }
     return attach;
 }
 
@@ -474,7 +478,7 @@ export async function getNextPlay() {
     return prepareCard(options[0], { cover: true });
 }
 
-export async function getRelistens(): Promise<any[]> {
+export async function getRelistens(limit: number = 10): Promise<any[]> {
     const raw = await APICall('board', 'searchCards', TRELLO_BOARD_ID);
     const prepared = await Promise.all(raw.map(c => prepareCard(c)));
     // console.log(await prepareCard(raw[1]));
@@ -487,25 +491,16 @@ export async function getRelistens(): Promise<any[]> {
         c.BCAlbum = await loadAlbum(c.urls[0], false);
         return c;
     }));
-    bcPrepped.sort((a: any, b: any) => compareAsc(b.BCAlbum.releaseDate, a.BCAlbum.releaseDate));
+    bcPrepped.sort((a: any, b: any) => compareDesc(b.BCAlbum.releaseDate, a.BCAlbum.releaseDate));
 
-    return await Promise.all(bcPrepped
-        .slice(0, 10)
+    const relistens = await Promise.all(bcPrepped
+        .slice(0, limit)
         .map(async (c) => {
             const rePrepared = await prepareCard(c._meta, { cover: true })
             
             return { ...c, ...rePrepared, releaseDate: c.BCAlbum.releaseDate };
         }));
-    // const options = await Promise.all(
-    //     results
-    //         .filter((c: any) => c.idList === queueList.id)
-    // );
 
-
-    // if (options.length < 1) {
-    //     throw new Error("nothing in the queue, check back later");
-    // }
-
-    // return prepareCard(options[0], true);
+    return relistens;
 }
 
