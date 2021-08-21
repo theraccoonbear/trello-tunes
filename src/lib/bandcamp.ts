@@ -25,10 +25,12 @@ export type BandcampAlbum = {
     tracks: AlbumTrack[],
     runningTimeSeconds: number,
     runningTimeDisplay: string
+    coverUrl: string,
+    coverBuffer: Buffer,
 }
 
 
-export async function scrape(BCAlbum, html, options: PrepareCardOptions = {} ) {
+export async function scrape(BCAlbum: BandcampAlbum, html, options: PrepareCardOptions = {} ) {
     const o: PrepareCardOptions = {...{
         cover: false,
         mp3s: false,
@@ -85,13 +87,13 @@ export async function loadAlbum(albumUrl: string, mp3s: boolean = true): Promise
 
     let html;
     if (hasCache(cacheKey)) {
-        console.log(`cache hit for ${albumUrl}`);
-        html = getCache(cacheKey);
+        // console.log(`cache hit for ${albumUrl}`);
+        html = await getCache(cacheKey);
     } else {
-        console.log(`grabbing ${albumUrl}`);
+        // console.log(`grabbing ${albumUrl}`);
         const res = await fetch(albumUrl);
         html = await res.text();
-        // setCache(cacheKey, html);
+        setCache(cacheKey, html);
     }
 
     const $ = cheerio.load(html);
@@ -100,6 +102,13 @@ export async function loadAlbum(albumUrl: string, mp3s: boolean = true): Promise
     const artist = $('#name-section h3 span a');
 
     const tracks = $('table.track_list tr.track_row_view');
+
+    const coverUrl = $('#tralbumArt a.popupImage').attr('href') || '';
+    let coverBuffer = Buffer.from([]);
+    if (coverUrl) {
+        const cover = await fetch(coverUrl);
+        coverBuffer = await cover.buffer();
+    }
 
     const myRgx = /^\s*(?<json>.+"sponsor".+?)\s*$/mi;
 
@@ -144,6 +153,8 @@ export async function loadAlbum(albumUrl: string, mp3s: boolean = true): Promise
         releaseDate,
         tracks: trackList,
         runningTimeSeconds,
+        coverUrl,
+        coverBuffer,
         runningTimeDisplay: `${runMin}:${(runSec < 10 ? '0' : '') + runSec}`
     };
 
