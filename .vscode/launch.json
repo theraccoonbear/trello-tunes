@@ -5,6 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Nextup",
+            "program": "${workspaceFolder}/src/scripts/nextup.ts",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
             "name": "Relisten",
             "program": "${workspaceFolder}/src/scripts/relisten.ts",
             "request": "launch",
