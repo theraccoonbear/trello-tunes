@@ -450,7 +450,7 @@ export async function slackerCompatability() {
     return rankedSlackers;
 }
 
-export async function getNextPlay() {
+export async function getNextPlay(): Promise<PreparedCard> {
     if (boardLists.length < 1) {
         // boardLists = await Trello.board.searchLists(TRELLO_BOARD_ID);
         boardLists = await APICall('board', 'searchLists', TRELLO_BOARD_ID);
@@ -478,7 +478,7 @@ export async function getNextPlay() {
     return prepareCard(options[0], { cover: true });
 }
 
-export async function getRelistens(limit: number = 10): Promise<any[]> {
+export async function getRelistens(limit: number = 10): Promise<PreparedCard[]> {
     const raw = await APICall('board', 'searchCards', TRELLO_BOARD_ID);
     const prepared = await Promise.all(raw.map(c => prepareCard(c)));
     // console.log(await prepareCard(raw[1]));
