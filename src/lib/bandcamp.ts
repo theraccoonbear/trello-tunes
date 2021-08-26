@@ -110,12 +110,12 @@ export async function loadAlbum(albumUrl: string, mp3s: boolean = true): Promise
         coverBuffer = await cover.buffer();
     }
 
-    const myRgx = /^\s*(?<json>.+"sponsor".+?)\s*$/mi;
+    // const myRgx = /^\s*(?<json>.+"sponsor".+?)\s*$/mi;
+    const myRgx = /<script type="application\/ld\+json">\s*(?<json>.+?)\s+<\/script>/ism;
 
     const match = myRgx.exec(html)
 
     const meta = json5.parse(match?.groups?.json || '{}');
-
     const releaseDateRaw = meta.datePublished.replace(/\s+GMT$/, '')
 
     const dateFmt = "dd MMM yyyy HH:mm:ss"

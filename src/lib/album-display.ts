@@ -47,13 +47,14 @@ export const generateTermialDisplay = async (card: PreparedCard, imageWidth: num
     const urls = `${chalk.whiteBright(urlList.join(` ${chalk.green('//')} `))}\n`;
     
     let release = '';
-    if (card.releaseDate) {
-        card.releaseDate = new Date(2020, 7, 15);
-        const future = isFuture(card.releaseDate);
+    const dateToUse = card.BCAlbum && card.BCAlbum.releaseDate ? card.BCAlbum.releaseDate : (card.releaseDate ? card.releaseDate : false);
+
+    if (dateToUse) {
+        const future = isFuture(dateToUse);
         const now = new Date();
-        const daysAgo = Math.abs(differenceInDays(now, card.releaseDate));
-        const weeksAgo = Math.abs(differenceInWeeks(now, card.releaseDate));
-        const monthsAgo = Math.abs(differenceInMonths(now, card.releaseDate));
+        const daysAgo = Math.abs(differenceInDays(now, dateToUse));
+        const weeksAgo = Math.abs(differenceInWeeks(now, dateToUse));
+        const monthsAgo = Math.abs(differenceInMonths(now, dateToUse));
 
         let time = '';
         const timeRel = future ? 'from now' : 'ago';
