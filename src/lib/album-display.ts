@@ -69,7 +69,7 @@ export const generateTermialDisplay = async (card: PreparedCard, imageWidth: num
             time = `about ${monthsAgo} month${monthsAgo > 1 ? 's' : ''} ${timeRel}`;
         }
 
-        release = `Releas${future ? 'ing' : 'ed'} ${chalk.blueBright(format(card.releaseDate, 'EEE MMM d'))} (${time})`;
+        release = `Releas${future ? 'ing' : 'ed'} ${chalk.blueBright(format(dateToUse, 'EEE MMM d'))} (${time})`;
     }
 
     const runAndSlack: string[] = [];
