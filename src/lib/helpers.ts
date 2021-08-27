@@ -21,7 +21,7 @@ if (!TRELLO_QUEUE_LIST_NAME) {
     throw new Error("No TRELLO_QUEUE_LIST_NAME");
 }
 
-console.log(`Using the "${CUSTOM_EVALUATOR}" evaluator`);
+//console.log(`Using the "${CUSTOM_EVALUATOR}" evaluator`);
 export const { scoreRelease, filterCard, MAX_SCORE } = require(`./custom/${CUSTOM_EVALUATOR}`);
 
 

@@ -4,6 +4,8 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "audio-loader": "^1.0.3",
+    "audio-play": "^2.3.1",
     "chalk": "^4.1.0",
     "cheerio": "^1.0.0-rc.3",
     "date-fns": "^2.21.3",
@@ -41,6 +43,7 @@
     "nextup": "node dist/scripts/nextup.js",
     "monthly": "node dist/scripts/monthly.js",
     "relisten": "node dist/scripts/relisten.js",
+    "server:start": "node dist/service/service.js",
     "setup": "cp sample.env .env"
   }
 }
