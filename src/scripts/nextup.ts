@@ -1,23 +1,29 @@
 import { getNextPlay, loadCache } from '../lib/helpers';
 import { generateTermialDisplay } from '../lib/album-display'
 import * as bc  from '../lib/bandcamp'
+import { NewLogger } from '../lib/logger';
 
 
 async function main() {
+    const logger = NewLogger("logs/nextup.log");
+
     try {
+        logger.log("doing the things!");
         await loadCache();
 
         const nextUp = await getNextPlay();
+        logger.log(nextUp);
         if (nextUp.urls.length > 0) {
             nextUp.BCAlbum = await bc.loadAlbum(nextUp.urls[0])
             const display = await generateTermialDisplay(nextUp);
             console.log(display);
         } else {
-            console.log(`Couldn't find anything to listen to!`)
+            logger.log(`Couldn't find anything to listen to!`)
         }
-    } catch (err) {
-        console.error(`D'oh! ${err.message}`);
-        console.error(err);
+    } catch (e) {
+        const err = e as any
+        logger.error(`D'oh! ${err.message}`);
+        logger.error({ message: err.message, stack: err.stack });
     }
 }
 

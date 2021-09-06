@@ -35,7 +35,6 @@ import { format, differenceInSeconds, parse, compareDesc } from 'date-fns';
 import fs from './fs';
 import path from 'path';
 import { BandcampAlbum, loadAlbum } from './bandcamp';
-import { load } from 'cheerio';
 
 const CACHE_DIR = '.cache';
 
