@@ -8,10 +8,34 @@ export interface LoggerOptions {
 }
 
 enum LogLevel {
+    Info = "Info",
     Log = "Log",
     Warn = "Warn",
     Error = "Error",
     Fatal = "Fatal",
+};
+
+export const NewLogger = (config: string | LoggerOptions): Logger => {
+    let o: LoggerOptions = {};
+
+    if (typeof config == 'string') {
+        o.file = config;
+    } else {
+        return new Logger(o)
+    }
+    return new Logger(o);
+};
+
+export const NewMultiLogger = (configs: LoggerOptions[]): Logger => {
+    const loggers = configs.map(c => {
+        if (c.file) {
+            return (new FileLogger(c.file)) as ConcreteLogger;
+        } else {
+            return (new ConsoleLogger()) as ConcreteLogger;
+        }
+    })
+    const ml = new MultiLogger(loggers);
+    return Logger.fromConcrete(ml);
 };
 
 class ConcreteLogger {
@@ -23,6 +47,19 @@ class LoggerInterface {
         if (typeof (this as any).write == 'undefined') {
             throw new Error("Can't `write`");
         }
+    }
+}
+
+class MultiLogger extends LoggerInterface {
+    private loggers: ConcreteLogger[] = [];
+    constructor(loggers: ConcreteLogger[]) {
+        super()
+        this.loggers = loggers;
+    }
+
+    async write(message: string) {
+        const res = await Promise.all(this.loggers.map(l => l.write(message)));
+        return;
     }
 }
 
@@ -59,17 +96,6 @@ class FileLogger extends LoggerInterface {
     }
 }
 
-export const NewLogger = (config: string | LoggerOptions) => {
-    let o: LoggerOptions = {};
-
-    if (typeof config == 'string') {
-        o.file = config;
-    } else {
-        return new Logger(o)
-    }
-    return new Logger(o);
-};
-
 class Logger {
     private logInterface: ConcreteLogger = new ConsoleLogger()
 
@@ -79,6 +105,12 @@ class Logger {
         } else {
             this.logInterface = (new ConsoleLogger()) as ConcreteLogger;
         }
+    }
+
+    static fromConcrete(logger: ConcreteLogger): Logger {
+        const l = new Logger({});
+        l.logInterface = logger;
+        return l;
     }
 
     async log(message: any) {

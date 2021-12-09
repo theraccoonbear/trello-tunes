@@ -17,8 +17,20 @@ async function main() {
     // const max = roundToNearest(slackers.reduce((p: number, s: RankedSlacker) => Math.max(p, s.percent), 0)) / maxHeartCount;
     const maxShares = slackers.reduce((p: number, s: RankedSlacker) =>  Math.max(p, s.count), 0);
 
+    let min = 10000;
+    let max = 0;
     slackers.forEach(s => {
-        const needHearts = Math.round((s.percent / 100) * maxHeartCount);
+        min = Math.min(min, s.percent);
+        max = Math.max(max, s.percent);
+    });
+
+    const range = max - min;
+
+    console.log(`min: ${min}, max: ${max}, range: ${range}`);
+
+    slackers.forEach(s => {
+        // const needHearts = Math.round((s.percent / 100) * maxHeartCount);
+        const needHearts = Math.round(((s.percent - min) / range) * maxHeartCount);
         const confidence = (s.count / maxShares) * 100;
         // console.log(maxHeartCount, max, needHearts);
         const bar = [...(new Array(maxHeartCount - needHearts)).fill(chalk.black(chalk.bgGray('♥'))),

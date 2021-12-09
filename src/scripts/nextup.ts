@@ -1,11 +1,14 @@
 import { getNextPlay, loadCache } from '../lib/helpers';
 import { generateTermialDisplay } from '../lib/album-display'
 import * as bc  from '../lib/bandcamp'
-import { NewLogger } from '../lib/logger';
+import { NewMultiLogger } from '../lib/logger';
 
 
 async function main() {
-    const logger = NewLogger("logs/nextup.log");
+    const logger = NewMultiLogger([
+        { file:"logs/nextup.log" }, // file logger
+        {}                          // console logger
+    ]);
 
     try {
         logger.log("doing the things!");
