@@ -34,7 +34,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "build:watch": "yarn build -w",
+    "build:watch": "tsc -w",
     "lint": "tsc --noEmit && eslint '*/**/*.{js,ts,tsx}' --quiet",
     "lint:fix": "yarn lint --fix",
     "compat": "node dist/scripts/compat.js",

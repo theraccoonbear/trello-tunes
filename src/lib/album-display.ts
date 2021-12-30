@@ -102,10 +102,11 @@ export const generateTermialDisplay = async (card: PreparedCard, imageWidth: num
     const imageLines = image.split("\n");
 
     const maxRows = Math.max(imageLines.length, details.length);
+    // const minRows = Math.min(imageLines.length, details.length);
 
     const combined: string[] = [];
     let width = 0;
-    for (let i = 0; i < maxRows; i++) {
+    for (let i = 0; i < imageLines.length; i++) {
         combined.push(` ${imageLines[i] || ''}  ${details[i] || ''}`);
         width = imageLines[i].length + 3;
     }
