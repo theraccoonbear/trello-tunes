@@ -41,6 +41,7 @@
     "nextup": "node dist/scripts/nextup.js",
     "monthly": "node dist/scripts/monthly.js",
     "relisten": "node dist/scripts/relisten.js",
+    "collection": "node dist/scripts/collection.js",
     "setup": "cp sample.env .env"
   }
 }
